@@ -7,7 +7,10 @@
 ## 特性
 
 - **DNS over QUIC (HTTP/3) 极速传输**：借助 Cloudflare 边缘的 HTTP/3 (QUIC) 支持与 `Alt-Svc` 协商通告，客户端可通过 QUIC 协议直接进行 DNS 解析，彻底避免 TCP 三次握手与队头阻塞。
-- **双协议完整兼容**：
+- **协议支持边界明确**：
+  - **客户端入站**：支持 **HTTP/3 (QUIC)** 与 **HTTP/2** 极速通道，实现真正的 0-RTT 连接与抗弱网迁移。
+  - **上游服务转发**：**仅支持 DoH (HTTPS 443 端口)**。受 Cloudflare 沙箱底层机制限制，不支持原生的 DoQ（DNS over QUIC，UDP 853 端口）上游。若路径中传入 `quic://` 前缀，系统会自动清洗并适配至对应的官方 DoH 端点。
+- **双查询规范兼容**：
   - **RFC 8484 (Wireformat)**：支持标准 GET (`?dns=...`) 与二进制 POST (`application/dns-message`) 请求。
   - **DNS-over-HTTPS JSON API**：支持 Google / Cloudflare 规范的 JSON 格式解析 (`?name=domain&type=A`)。
 - **多上游智能路由**：内置主流高速上游别名（Cloudflare, Google, Quad9, 阿里 DNS, 腾讯 DNSPod, 360, AdGuard 广告拦截等），支持按路径即插即用切换。
