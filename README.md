@@ -33,8 +33,10 @@
 | `/adguard` | AdGuard DNS (`dns.adguard-dns.com`)| 拦截常见广告与跟踪器 |
 | `/opendns` | Cisco OpenDNS (`doh.opendns.com`) | 思科公共 DNS |
 
-*注：除了预设别名，亦可直接使用白名单内的动态上游，例如 `https://dns.你的域名.com/dns.google/dns-query`。*
-
+*注：除了预设别名，系统全面兼容以下灵活路径写法：*
+- 完整 URL 代理：`https://dns.你的域名.com/https://dns.google/dns-query`
+- 纯 IP / 短路径：`https://dns.你的域名.com/223.5.5.5`（自动映射阿里公共 DNS）或 `8.8.8.8`（Google）
+- 协议头自动清洗：`https://dns.你的域名.com/quic://223.5.5.5`（自动识别并映射至极速 DoH 上游）
 ## 部署指南
 
 ### 方案一：Cloudflare Snippets (推荐)

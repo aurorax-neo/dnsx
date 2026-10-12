@@ -3,7 +3,7 @@
  * 专为 5ms CPU 限制与高并发边缘网络优化，支持 RFC 8484 与 DNS-JSON 规范
  */
 
-// 预置主流高速上游 DNS 基础地址映射表
+// 预置主流高速上游 DNS 基础地址映射表（包含常见名称与公共 IP）
 const UPSTREAM_SERVERS = {
   // 默认上游 (Cloudflare 极速公共 DNS)
   default: "https://1.1.1.1",
@@ -13,18 +13,31 @@ const UPSTREAM_SERVERS = {
   cf: "https://cloudflare-dns.com",
   "cf-security": "https://security.cloudflare-dns.com", // 阻止恶意软件 (1.1.1.2)
   "cf-family": "https://family.cloudflare-dns.com",     // 阻止恶意软件与成人内容 (1.1.1.3)
+  "1.1.1.1": "https://1.1.1.1",
+  "1.0.0.1": "https://1.0.0.1",
 
   // Google Public DNS (8.8.8.8 / 8.8.4.4)
   google: "https://dns.google",
+  "8.8.8.8": "https://dns.google",
+  "8.8.4.4": "https://dns.google",
 
   // Quad9 (9.9.9.9 瑞士隐私保护与威胁阻断)
   quad9: "https://dns.quad9.net",
+  "9.9.9.9": "https://dns.quad9.net",
+  "149.112.112.112": "https://dns.quad9.net",
 
-  // 国内主流公共 DNS
+  // 阿里公共 DNS (AliDNS)
   alidns: "https://dns.alidns.com",
   ali: "https://dns.alidns.com",
+  "223.5.5.5": "https://dns.alidns.com",
+  "223.6.6.6": "https://dns.alidns.com",
+
+  // 腾讯公共 DNS (DNSPod)
   dnspod: "https://doh.pub",
   tencent: "https://doh.pub",
+  "119.29.29.29": "https://doh.pub",
+
+  // 360 安全 DNS
   "360": "https://doh.360.cn",
 
   // AdGuard DNS (广告与跟踪拦截)
@@ -32,22 +45,49 @@ const UPSTREAM_SERVERS = {
 
   // Cisco OpenDNS
   opendns: "https://doh.opendns.com",
+  "208.67.222.222": "https://doh.opendns.com",
+  "208.67.220.220": "https://doh.opendns.com",
 };
 
-// 动态自定义上游安全白名单 (防止被用作通用代理)
+// 动态自定义上游安全白名单 (防止被用作通用网络代理)
 const ALLOWED_UPSTREAM_HOSTS = new Set([
+  // Cloudflare
   "1.1.1.1",
   "1.0.0.1",
   "cloudflare-dns.com",
   "security.cloudflare-dns.com",
   "family.cloudflare-dns.com",
+
+  // Google
+  "8.8.8.8",
+  "8.8.4.4",
   "dns.google",
+
+  // Quad9
+  "9.9.9.9",
+  "149.112.112.112",
   "dns.quad9.net",
+
+  // 阿里 DNS
+  "223.5.5.5",
+  "223.6.6.6",
   "dns.alidns.com",
+
+  // 腾讯 DNSPod
+  "119.29.29.29",
   "doh.pub",
+  "sm2.doh.pub",
+
+  // 360 DNS
   "doh.360.cn",
+
+  // AdGuard
   "dns.adguard-dns.com",
+
+  // OpenDNS
   "doh.opendns.com",
+  "208.67.222.222",
+  "208.67.220.220",
 ]);
 
 // CORS 跨域响应头及 HTTP/3 (QUIC) 协商通告
@@ -96,33 +136,34 @@ export default {
 
     // 3. 路由与上游 DNS 地址解析
     let upstreamBase = "";
-    const cleanPath = path.replace(/^\/+|\/+$/g, ""); // 去除首尾斜杠
+    // 去除路径首尾连续斜杠，并处理可能的协议头双斜杠被折叠情况
+    let cleanPath = path.replace(/^\/+|\/+$/g, "");
 
     if (cleanPath === "" || cleanPath === "dns-query" || cleanPath === "resolve") {
       // 默认上游：Cloudflare DNS
       const subPath = cleanPath === "resolve" ? "/resolve" : "/dns-query";
       upstreamBase = `${UPSTREAM_SERVERS.default}${subPath}`;
     } else {
-      const slashIndex = cleanPath.indexOf("/");
-      const firstSegment = (slashIndex === -1 ? cleanPath : cleanPath.slice(0, slashIndex)).toLowerCase();
-      const restPath = slashIndex === -1 ? "" : cleanPath.slice(slashIndex + 1);
+      // 协议头标准化清洗：兼容 https://、http://、quic://、doq:// 及其单斜杠折叠形式
+      // 例如：quic://223.5.5.5 -> 223.5.5.5, https:/dns.google/dns-query -> dns.google/dns-query
+      let normalizedTarget = cleanPath;
+      if (/^(https?|quic|doq):\/+/i.test(normalizedTarget)) {
+        normalizedTarget = normalizedTarget.replace(/^(https?|quic|doq):\/+/i, "");
+      }
+
+      const slashIndex = normalizedTarget.indexOf("/");
+      const firstSegment = (slashIndex === -1 ? normalizedTarget : normalizedTarget.slice(0, slashIndex)).toLowerCase();
+      const restPath = slashIndex === -1 ? "" : normalizedTarget.slice(slashIndex + 1);
 
       if (firstSegment in UPSTREAM_SERVERS) {
-        // 匹配到预设别名
+        // 命中预设别名或常见公共 DNS IP (如 223.5.5.5, google, alidns 等)
         const serverOrigin = UPSTREAM_SERVERS[firstSegment];
         const subPath = restPath ? `/${restPath}` : "/dns-query";
         upstreamBase = `${serverOrigin}${subPath}`;
       } else {
-        // 动态自定义上游解析 (例如 /dns.google/dns-query 或 /https://dns.google/dns-query)
-        let customTarget = cleanPath;
-        if (customTarget.startsWith("https:/") && !customTarget.startsWith("https://")) {
-          customTarget = customTarget.replace("https:/", "https://");
-        } else if (!customTarget.startsWith("https://") && !customTarget.startsWith("http://")) {
-          customTarget = "https://" + customTarget;
-        }
-
+        // 动态自定义上游解析 (例如 /dns.google/dns-query)
         try {
-          const parsedCustom = new URL(customTarget);
+          const parsedCustom = new URL("https://" + normalizedTarget);
           if (ALLOWED_UPSTREAM_HOSTS.has(parsedCustom.hostname)) {
             const targetPath = parsedCustom.pathname && parsedCustom.pathname !== "/"
               ? parsedCustom.pathname
