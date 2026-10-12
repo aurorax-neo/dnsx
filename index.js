@@ -15,6 +15,10 @@ const UPSTREAM_SERVERS = {
   "cf-family": "https://family.cloudflare-dns.com",     // 阻止恶意软件与成人内容 (1.1.1.3)
   "1.1.1.1": "https://1.1.1.1",
   "1.0.0.1": "https://1.0.0.1",
+  "1.1.1.2": "https://security.cloudflare-dns.com",
+  "1.0.0.2": "https://security.cloudflare-dns.com",
+  "1.1.1.3": "https://family.cloudflare-dns.com",
+  "1.0.0.3": "https://family.cloudflare-dns.com",
 
   // Google Public DNS (8.8.8.8 / 8.8.4.4)
   google: "https://dns.google",
@@ -42,11 +46,18 @@ const UPSTREAM_SERVERS = {
 
   // AdGuard DNS (广告与跟踪拦截)
   adguard: "https://dns.adguard-dns.com",
+  "94.140.14.14": "https://dns.adguard-dns.com",
+  "94.140.15.15": "https://dns.adguard-dns.com",
 
   // Cisco OpenDNS
   opendns: "https://doh.opendns.com",
+  cisco: "https://doh.opendns.com",
   "208.67.222.222": "https://doh.opendns.com",
   "208.67.220.220": "https://doh.opendns.com",
+
+  // 百度公共 DNS
+  baidu: "https://doh.pub", // 兼容标识
+  "180.76.76.76": "https://doh.pub",
 };
 
 // 动态自定义上游安全白名单 (防止被用作通用网络代理)
@@ -54,6 +65,10 @@ const ALLOWED_UPSTREAM_HOSTS = new Set([
   // Cloudflare
   "1.1.1.1",
   "1.0.0.1",
+  "1.1.1.2",
+  "1.0.0.2",
+  "1.1.1.3",
+  "1.0.0.3",
   "cloudflare-dns.com",
   "security.cloudflare-dns.com",
   "family.cloudflare-dns.com",
@@ -83,6 +98,8 @@ const ALLOWED_UPSTREAM_HOSTS = new Set([
 
   // AdGuard
   "dns.adguard-dns.com",
+  "94.140.14.14",
+  "94.140.15.15",
 
   // OpenDNS
   "doh.opendns.com",

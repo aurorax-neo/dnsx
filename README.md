@@ -33,10 +33,61 @@
 | `/adguard` | AdGuard DNS (`dns.adguard-dns.com`)| 拦截常见广告与跟踪器 |
 | `/opendns` | Cisco OpenDNS (`doh.opendns.com`) | 思科公共 DNS |
 
-*注：除了预设别名，系统全面兼容以下灵活路径写法：*
-- 完整 URL 代理：`https://dns.你的域名.com/https://dns.google/dns-query`
-- 纯 IP / 短路径：`https://dns.你的域名.com/223.5.5.5`（自动映射阿里公共 DNS）或 `8.8.8.8`（Google）
-- 协议头自动清洗：`https://dns.你的域名.com/quic://223.5.5.5`（自动识别并映射至极速 DoH 上游）
+### 灵活路径与多协议格式全面兼容说明
+
+除了基础别名路由外，系统内置自适应 URL 重写与协议头清洗引擎，全面兼容以下八大类灵活写法：
+
+#### 1. 默认极速路径 (Default)
+- 根路径：`https://dns.你的域名.com`
+- 标准 DoH 路径：`https://dns.你的域名.com/dns-query`
+- 别名解析路径：`https://dns.你的域名.com/resolve`
+
+#### 2. 预设服务商别名短路径 (Alias Routing)
+- 谷歌公共 DNS：`https://dns.你的域名.com/google` 或 `/google/dns-query`
+- 阿里公共 DNS：`https://dns.你的域名.com/alidns` 或 `/ali`
+- 腾讯公共 DNS：`https://dns.你的域名.com/dnspod` 或 `/tencent`
+- 瑞士 Quad9：`https://dns.你的域名.com/quad9`
+- 广告与威胁拦截：`https://dns.你的域名.com/adguard`、`/cf-security`、`/cf-family`
+- 思科 OpenDNS 与 360：`https://dns.你的域名.com/opendns`、`/360`
+
+#### 3. 纯公共 IP 极速路径 (Direct IP Routing)
+直接使用公共 DNS 的经典 IP 作为路径，系统自动识别并映射至其官方优化 DoH 端点：
+- 阿里 DNS：`https://dns.你的域名.com/223.5.5.5` 或 `/223.6.6.6`
+- 谷歌 DNS：`https://dns.你的域名.com/8.8.8.8` 或 `/8.8.4.4`
+- Cloudflare：`https://dns.你的域名.com/1.1.1.1` 或 `/1.0.0.1`（安全版 `/1.1.1.2`、家庭版 `/1.1.1.3`）
+- Quad9：`https://dns.你的域名.com/9.9.9.9` 或 `/149.112.112.112`
+- 腾讯 DNSPod：`https://dns.你的域名.com/119.29.29.29`
+- AdGuard：`https://dns.你的域名.com/94.140.14.14` 或 `/94.140.15.15`
+- 支持追加子路径，例如：`https://dns.你的域名.com/223.5.5.5/dns-query`
+
+#### 4. 完整 URL 代理模式 (Full URL Proxy)
+原生支持将上游完整的 HTTP/HTTPS 地址拼接在代理域名之后：
+- `https://dns.你的域名.com/https://dns.google/dns-query`
+- `https://dns.你的域名.com/https://dns.alidns.com/dns-query`
+- `https://dns.你的域名.com/http://doh.pub/dns-query`
+
+#### 5. 省略协议头的完整域名模式 (Hostname Omitted Scheme)
+支持省略 `https://` 协议前缀，直接输入白名单域名及路径：
+- `https://dns.你的域名.com/dns.google/dns-query`
+- `https://dns.你的域名.com/dns.alidns.com/dns-query`
+- `https://dns.你的域名.com/doh.pub/dns-query`
+- 省略子路径自适应：`https://dns.你的域名.com/dns.google`（自动补全 `/dns-query`）
+
+#### 6. 异构协议头自动清洗兼容 (Protocol Normalization)
+针对客户端误配或协议转换工具传入的 QUIC/DoQ 协议头，自动清洗并平滑适配为对应的高速 DoH 上游：
+- `quic://` 协议清洗：`https://dns.你的域名.com/quic://223.5.5.5`
+- `quic://` 域名清洗：`https://dns.你的域名.com/quic://dns.google/dns-query`
+- `doq://` 协议清洗：`https://dns.你的域名.com/doq://223.5.5.5`
+
+#### 7. 连续斜杠压缩与单斜杠折叠容错 (Slash Normalization)
+兼容部分反向代理软件或网关自动压缩双斜杠为单斜杠的极端边界场景：
+- `/https:/dns.google/dns-query`（自动还原为 `https://`）
+- `/quic:/223.5.5.5`（自动剔除协议前缀）
+- 多重斜杠容错：`///dns-query`、`//google//`
+
+#### 8. 双标准查询协议规范
+- **RFC 8484 (Wireformat 二进制)**：GET `?dns=<base64url>` 或 POST 二进制流（`application/dns-message`）
+- **DNS JSON API**：GET `?name=<domain>&type=<A|AAAA|CNAME|TXT...>`
 ## 部署指南
 
 ### 方案一：Cloudflare Snippets (推荐)
