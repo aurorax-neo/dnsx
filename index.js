@@ -1,5 +1,5 @@
 /**
- * dnsx - Cloudflare Snippets & Workers DNS over HTTPS (DoH) / QUIC 加速代理
+ * dohx - Cloudflare Snippets & Workers DNS over HTTPS (DoH) / QUIC 加速代理
  * 专为 5ms CPU 限制与高并发边缘网络优化，支持 RFC 8484 与 DNS-JSON 规范
  */
 

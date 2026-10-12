@@ -1,4 +1,4 @@
-# DNS Proxy - Cloudflare Snippets & Workers Edition (dnsx)
+# DoH Proxy - Cloudflare Snippets & Workers Edition (dohx)
 
 这是一个专为 **Cloudflare Snippets** (Rules -> Snippets) 及 **Cloudflare Workers** 设计的极简、高性能 DNS over HTTPS (DoH) 与 DNS over QUIC (HTTP/3) 边缘加速代理。
 
@@ -101,7 +101,7 @@ Snippets 完全免费，无需配置 Worker 路由，直接挂载在现有域名
 2. 确保在 **DNS** 列表中已为加速子域名（如 `dns.你的域名.com`）添加解析记录（例如 A 记录指向 `192.0.2.1`），并开启**橙色云朵 (Proxied)**。
 3. 进入 **Speed (速度)** -> **Optimization (优化)** -> **Protocol (协议)**，确保开启 **HTTP/3 (with QUIC)** 及 **0-RTT Connection Resumption**。
 4. 进入左侧菜单 **Rules (规则)** -> **Snippets (代码片段)**。
-5. 点击 **Create Snippet**，名称填写 `dnsx`。
+5. 点击 **Create Snippet**，名称填写 `dohx`。
 6. 将本项目中的 `index.js` 代码全部复制并粘贴到代码编辑器中。
 7. 在 **Filter (过滤器)** 中配置触发规则：
    - 字段选择 `Hostname`
